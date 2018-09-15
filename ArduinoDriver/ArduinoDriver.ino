@@ -18,18 +18,16 @@ unsigned long last_message_send = 0;
 MESSAGE_STATUS messageState = NOT_STARTED;
 int currentLed = -1, red, green, blue;
 
-void setup() {
-  Serial.begin(9600);
-  pinMode(buttonPin, INPUT_PULLUP);
-  FastLED.addLeds<WS2811, LED_DATA_PIN>(leds, NUM_LEDS);
+void setup() { //setup the system
+  Serial.begin(9600); //establish a serial communication
+  pinMode(buttonPin, INPUT_PULLUP); //set buttonPin as input with pullup resistor
+  FastLED.addLeds<WS2811, LED_DATA_PIN>(leds, NUM_LEDS); //set FastLED to work with ws2811 and LED_Data_PIN
   FastLED.show(); 
-
-  
 }
 
 void loop() {
-   updateJoystick();
-   updateLeds();
+   updateJoystick(); //send joystick condition via serial
+   updateLeds(); //check for commands for the leds
 }
 
 void updateJoystick(){
@@ -37,14 +35,14 @@ void updateJoystick(){
   if(now - last_message_send < 100)
     return;
   
-  int Ax = analogRead(AxPin);
+  int Ax = analogRead(AxPin); //read values
   int Ay = analogRead(AyPin);
   buttonState = digitalRead(buttonPin);
 
-  xValue = map(Ax, 0, 1023, 0, 255);
+  xValue = map(Ax, 0, 1023, 0, 255); 
   yValue = map(Ay, 0, 1023, 0, 255);
   
-  Serial.print(xValue);
+  Serial.print(xValue); //send via serial
   Serial.print(" ");
   Serial.print(yValue);
   Serial.print(" ");
@@ -57,7 +55,7 @@ void updateLeds(){
   bool problem=false;
   while (Serial.available() > 0 && messageState != ERROR_MESSAGE)
   {
-      switch(messageState)
+      switch(messageState) //message in the protocol
       {
         case NOT_STARTED:
           not_started_fucn();
@@ -86,7 +84,7 @@ void updateLeds(){
     error_func();
 }
 
-void not_started_fucn(){
+void not_started_fucn(){ //start led command
   int tempByte = Serial.read();
   if(tempByte == LED_MESSAGE_PREFIX_BYTE)
     messageState = LED_NUMBER;
@@ -101,7 +99,7 @@ void not_started_fucn(){
   }
 }
 
-void led_number_func(){
+void led_number_func(){ //set led number
   currentLed = Serial.read();
   if(currentLed < 0 || currentLed >= NUM_LEDS)
   {
@@ -113,7 +111,7 @@ void led_number_func(){
     messageState = RED_VALUE;
 }
 
-void check_sum_func(){
+void check_sum_func(){ //verify checksum
   int checkSum = (currentLed + red + green + blue + LED_MESSAGE_PREFIX_BYTE) % 256;
   if(Serial.read() != checkSum)
   {
@@ -128,7 +126,7 @@ void check_sum_func(){
   }
 }
 
-void error_func(){
+void error_func(){ //error handler
   delay(20);
   
   while (Serial.available())
